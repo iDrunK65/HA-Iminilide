@@ -31,6 +31,7 @@ _load_module("custom_components.iminilide.exceptions", PACKAGE_ROOT / "exception
 parser = _load_module("custom_components.iminilide.parser", PACKAGE_ROOT / "parser.py")
 
 parse_general_configuration = parser.parse_general_configuration
+parse_network_configuration = parser.parse_network_configuration
 parse_refresh_payload = parser.parse_refresh_payload
 parse_voie_configuration = parser.parse_voie_configuration
 parse_voie_list = parser.parse_voie_list
@@ -46,6 +47,10 @@ GENERAL_CONFIGURATION_HTML = """
 <div class="element_bas_de_page">base : 6.14</div>
 <div class="element_bas_de_page">page internet : 3.0</div>
 </div>
+"""
+
+NETWORK_CONFIGURATION_HTML = """
+<div style="text-align: center;margin-top: 30px;" class="champs">RESEAU (MAC adr) : 00:1E:AC:FC:CF:12</div>
 """
 
 VOIE_LIST_HTML = """
@@ -112,11 +117,19 @@ REFRESH_PAYLOAD = """
 
 class ParserTests(unittest.TestCase):
     def test_parse_general_configuration(self) -> None:
-        metadata = parse_general_configuration(GENERAL_CONFIGURATION_HTML)
+        metadata = parse_general_configuration(
+            GENERAL_CONFIGURATION_HTML, NETWORK_CONFIGURATION_HTML
+        )
 
         self.assertEqual(metadata.name, "PIC - ch froides sanitaires niv3")
         self.assertEqual(metadata.serial_number, "1021213418")
+        self.assertEqual(metadata.mac_address, "00:1e:ac:fc:cf:12")
         self.assertEqual(metadata.firmware_web, "3.0")
+
+    def test_parse_network_configuration(self) -> None:
+        mac_address = parse_network_configuration(NETWORK_CONFIGURATION_HTML)
+
+        self.assertEqual(mac_address, "00:1e:ac:fc:cf:12")
 
     def test_parse_voie_list(self) -> None:
         voies = parse_voie_list(VOIE_LIST_HTML)

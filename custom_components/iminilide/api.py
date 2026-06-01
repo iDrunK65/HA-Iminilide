@@ -10,6 +10,7 @@ from .exceptions import IminilideConnectionError
 from .parser import (
     ControllerDescription,
     parse_general_configuration,
+    parse_network_configuration,
     parse_refresh_payload,
     parse_voie_configuration,
     parse_voie_list,
@@ -37,12 +38,13 @@ class IminilideApiClient:
         self._base_url = f"http://{self.host}"
 
     async def async_fetch_controller_description(self) -> ControllerDescription:
-        metadata_html, voie_list_html = await asyncio.gather(
+        metadata_html, network_html, voie_list_html = await asyncio.gather(
             self._async_get_text("/index?configuration_iminilide"),
+            self._async_get_text("/index?configuration_reseau"),
             self._async_get_text("/index?configuration_voie"),
         )
 
-        metadata = parse_general_configuration(metadata_html)
+        metadata = parse_general_configuration(metadata_html, network_html)
         voie_summaries = parse_voie_list(voie_list_html)
         voie_details = await asyncio.gather(
             *(self.async_fetch_voie_configuration(voie.number) for voie in voie_summaries)

@@ -13,6 +13,7 @@ from .exceptions import IminilideParseError
 class ControllerMetadata:
     name: str
     serial_number: str | None
+    mac_address: str | None
     firmware_display: str | None
     firmware_base: str | None
     firmware_web: str | None
@@ -68,15 +69,21 @@ _VOIE_LIST_RE = re.compile(
     r'href="/index\?configuration_voie(\d+)">Voie\s+\d+\s*\((.*?)\)</a>',
     re.IGNORECASE | re.DOTALL,
 )
+_MAC_ADDRESS_RE = re.compile(
+    r"MAC\s+adr\)\s*:\s*([0-9A-Fa-f:]{17})", re.IGNORECASE
+)
 
 
-def parse_general_configuration(html: str) -> ControllerMetadata:
+def parse_general_configuration(
+    html: str, network_html: str | None = None
+) -> ControllerMetadata:
     """Parse controller metadata from the general configuration page."""
 
     footer_entries = _extract_footer_entries(html)
     return ControllerMetadata(
         name=_clean_text(_extract_input_value(html, "nom_iminilide")),
         serial_number=footer_entries.get("numero de serie"),
+        mac_address=parse_network_configuration(network_html) if network_html else None,
         firmware_display=footer_entries.get("afficheur"),
         firmware_base=footer_entries.get("base"),
         firmware_web=footer_entries.get("page internet"),
@@ -94,6 +101,16 @@ def parse_voie_list(html: str) -> list[VoieSummary]:
         raise IminilideParseError("No voies were found in the configuration page")
 
     return voies
+
+
+def parse_network_configuration(html: str) -> str | None:
+    """Parse the controller MAC address from the network configuration page."""
+
+    match = _MAC_ADDRESS_RE.search(_clean_text(html))
+    if match is None:
+        return None
+
+    return match.group(1).lower()
 
 
 def parse_voie_configuration(html: str) -> VoieConfig:

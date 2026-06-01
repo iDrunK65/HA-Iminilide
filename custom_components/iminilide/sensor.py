@@ -4,7 +4,6 @@ from homeassistant.components.sensor import SensorDeviceClass, SensorEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import UnitOfTemperature
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers.entity import EntityCategory
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .entity import IminilideVoieEntity
@@ -22,10 +21,6 @@ async def async_setup_entry(
 
     for voie in sorted(runtime_data.description.voies.values(), key=lambda voie: voie.number):
         entities.append(IminilideMeasurementSensor(runtime_data, voie))
-        if voie.alarm_surveillance_enabled and voie.alarm_high_threshold is not None:
-            entities.append(IminilideThresholdSensor(runtime_data, voie, "high"))
-        if voie.alarm_surveillance_enabled and voie.alarm_low_threshold is not None:
-            entities.append(IminilideThresholdSensor(runtime_data, voie, "low"))
 
     async_add_entities(entities)
 
@@ -79,34 +74,3 @@ class IminilideMeasurementSensor(IminilideVoieEntity, SensorEntity):
             if self.reading.product_name:
                 attributes["product_name"] = self.reading.product_name
         return attributes
-
-
-class IminilideThresholdSensor(IminilideVoieEntity, SensorEntity):
-    """Static alarm threshold for one voie."""
-
-    _attr_entity_category = EntityCategory.DIAGNOSTIC
-
-    def __init__(self, runtime_data, voie, threshold_kind: str) -> None:
-        super().__init__(runtime_data, voie, f"alarm_{threshold_kind}_threshold")
-        self._threshold_kind = threshold_kind
-        self._attr_name = "Alarme haute" if threshold_kind == "high" else "Alarme basse"
-
-    @property
-    def native_value(self) -> float | None:
-        if self._threshold_kind == "high":
-            return self.voie.alarm_high_threshold
-        return self.voie.alarm_low_threshold
-
-    @property
-    def native_unit_of_measurement(self) -> str | None:
-        return self.voie.unit
-
-    @property
-    def device_class(self) -> SensorDeviceClass | None:
-        if self.voie.unit == UnitOfTemperature.CELSIUS:
-            return SensorDeviceClass.TEMPERATURE
-        return None
-
-    @property
-    def suggested_display_precision(self) -> int:
-        return 1

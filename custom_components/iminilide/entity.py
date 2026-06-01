@@ -28,6 +28,7 @@ class IminilideVoieEntity(CoordinatorEntity, Entity):
             f"{self._controller_device_identifier}_voie_{voie.number}"
         )
         self._attr_unique_id = f"{self._voie_device_identifier}_{unique_suffix}"
+        self._device_name = f"Voie {voie.number} - {voie.name}"
 
     @property
     def device_info(self) -> DeviceInfo:
@@ -35,7 +36,7 @@ class IminilideVoieEntity(CoordinatorEntity, Entity):
             identifiers={(DOMAIN, self._voie_device_identifier)},
             manufacturer=MANUFACTURER,
             model=self._voie.sensor_type,
-            name=self._voie.name,
+            name=self._device_name,
             via_device=(DOMAIN, self._controller_device_identifier),
         )
 

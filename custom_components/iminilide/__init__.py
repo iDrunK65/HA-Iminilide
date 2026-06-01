@@ -82,6 +82,11 @@ def _async_register_controller_device(
     device_registry.async_get_or_create(
         config_entry_id=entry.entry_id,
         identifiers={(DOMAIN, controller_device_identifier)},
+        connections={
+            (dr.CONNECTION_NETWORK_MAC, metadata.mac_address)
+        }
+        if metadata.mac_address
+        else None,
         manufacturer=MANUFACTURER,
         model="i-MINILide",
         name=metadata.name or host,
