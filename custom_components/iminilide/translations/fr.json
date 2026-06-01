@@ -1,0 +1,21 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Connexion a i-MINILide",
+        "description": "Saisissez l'adresse IP ou le nom d'hote du controleur.",
+        "data": {
+          "host": "Hote"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Impossible de se connecter au controleur.",
+      "invalid_response": "La reponse du controleur n'a pas pu etre analysee.",
+      "unknown": "Erreur inattendue."
+    },
+    "abort": {
+      "already_configured": "Ce controleur est deja configure."
+    }
+  }
+}

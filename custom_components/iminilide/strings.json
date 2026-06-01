@@ -1,0 +1,21 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Connect to i-MINILide",
+        "description": "Enter the IP address or host name of the controller.",
+        "data": {
+          "host": "Host"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Failed to connect to the controller.",
+      "invalid_response": "The controller response could not be parsed.",
+      "unknown": "Unexpected error."
+    },
+    "abort": {
+      "already_configured": "This controller is already configured."
+    }
+  }
+}
