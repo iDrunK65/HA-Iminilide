@@ -75,6 +75,7 @@ VOIE_CONFIGURATION_HTML = """
 <select id="unite" name="unite">
 <option value="0" selected="selected">&deg;C</option>
 </select>
+<input type="text" id="correction" name="correction" value="0.0" />
 <select id="surveillance_alarme" name="surveillance_alarme">
 <option value="O" selected="selected">Activee</option>
 <option value="N">Desactivee</option>
@@ -146,6 +147,7 @@ class ParserTests(unittest.TestCase):
         self.assertTrue(voie.active)
         self.assertEqual(voie.name, "CF PIC WC n3 NEGATIVE")
         self.assertEqual(voie.sensor_type, "Temperature")
+        self.assertAlmostEqual(voie.correction, 0.0)
         self.assertAlmostEqual(voie.alarm_high_threshold, -14.0)
         self.assertAlmostEqual(voie.alarm_low_threshold, -25.0)
 

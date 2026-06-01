@@ -43,8 +43,17 @@ class IminilideSurveillanceBinarySensor(IminilideVoieEntity, BinarySensorEntity)
         return self.voie.alarm_surveillance_enabled
 
     @property
-    def extra_state_attributes(self) -> dict[str, bool]:
-        return {"active": self.voie.active}
+    def extra_state_attributes(self) -> dict[str, bool | float | str] | None:
+        attributes: dict[str, bool | float | str] = {"active": self.voie.active}
+        if self.voie.unit:
+            attributes["unite"] = self.voie.unit
+        if self.voie.correction is not None:
+            attributes["correction"] = self.voie.correction
+        if self.voie.alarm_high_threshold is not None:
+            attributes["seuil_alarme_haut"] = self.voie.alarm_high_threshold
+        if self.voie.alarm_low_threshold is not None:
+            attributes["seuil_alarme_bas"] = self.voie.alarm_low_threshold
+        return attributes or None
 
 
 class IminilideAlarmBinarySensor(IminilideVoieEntity, BinarySensorEntity):
@@ -76,6 +85,8 @@ class IminilideAlarmBinarySensor(IminilideVoieEntity, BinarySensorEntity):
         attributes: dict[str, str | float] = {}
         if self.voie.unit:
             attributes["unite"] = self.voie.unit
+        if self.voie.correction is not None:
+            attributes["correction"] = self.voie.correction
         if self.reading is not None and self.reading.numeric_value is not None:
             attributes["valeur"] = self.reading.numeric_value
         if self.voie.alarm_high_threshold is not None:

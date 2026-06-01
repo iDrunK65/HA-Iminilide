@@ -32,6 +32,7 @@ class VoieConfig:
     active: bool
     sensor_type: str
     unit: str | None
+    correction: float | None
     alarm_surveillance_enabled: bool
     alarm_high_threshold: float | None
     alarm_low_threshold: float | None
@@ -124,11 +125,12 @@ def parse_voie_configuration(html: str) -> VoieConfig:
     name = " ".join(part for part in name_parts if part)
     sensor_type = _extract_selected_option_text(html, "type")
     unit = _empty_to_none(_extract_selected_option_text(html, "unite"))
+    correction = _safe_float(_extract_input_value(html, "correction"))
     surveillance_enabled = _extract_selected_option_value(html, "surveillance_alarme") == "O"
 
     high_threshold: float | None = None
     low_threshold: float | None = None
-    if surveillance_enabled and sensor_type not in {"Contact", "Contact Alim"}:
+    if sensor_type not in {"Contact", "Contact Alim"}:
         high_threshold = _safe_float(_extract_input_value(html, "seuil_alarme_haut"))
         low_threshold = _safe_float(_extract_input_value(html, "seuil_alarme_bas"))
 
@@ -138,6 +140,7 @@ def parse_voie_configuration(html: str) -> VoieConfig:
         active=_is_checked(html, "active"),
         sensor_type=sensor_type,
         unit=unit,
+        correction=correction,
         alarm_surveillance_enabled=surveillance_enabled,
         alarm_high_threshold=high_threshold,
         alarm_low_threshold=low_threshold,
