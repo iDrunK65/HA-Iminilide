@@ -4,6 +4,7 @@
   "config_flow": true,
   "documentation": "https://github.com/iDrunK65/HA-Iminilide",
   "issue_tracker": "https://github.com/iDrunK65/HA-Iminilide/issues",
+  "homeassistant": "2024.1.0",
   "iot_class": "local_polling",
   "integration_type": "hub",
   "codeowners": [
