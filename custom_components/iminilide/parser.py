@@ -73,6 +73,13 @@ _VOIE_LIST_RE = re.compile(
 _MAC_ADDRESS_RE = re.compile(
     r"MAC\s+adr\)\s*:\s*([0-9A-Fa-f:]{17})", re.IGNORECASE
 )
+_MEASUREMENT_TITLE_RE = re.compile(
+    r'<div class="titre_voie">(.*?)</div>', re.IGNORECASE | re.DOTALL
+)
+_MEASUREMENT_VALUE_RE = re.compile(
+    r'<div class="valeur_voie">\s*<div class="([^"]*valeur_voie_[^"]*)">(.*?)</div>\s*</div>',
+    re.IGNORECASE | re.DOTALL,
+)
 
 
 def parse_general_configuration(
@@ -145,6 +152,44 @@ def parse_voie_configuration(html: str) -> VoieConfig:
         alarm_high_threshold=high_threshold,
         alarm_low_threshold=low_threshold,
     )
+
+
+def parse_measurements_html(html: str) -> dict[int, VoieReading]:
+    """Parse mesure values from legacy HTML temperature pages."""
+
+    title_matches = _MEASUREMENT_TITLE_RE.findall(html)
+    value_matches = _MEASUREMENT_VALUE_RE.findall(html)
+    if not title_matches or not value_matches:
+        raise IminilideParseError("No measurements were found in the HTML page")
+
+    readings: dict[int, VoieReading] = {}
+    for raw_title, (value_class, raw_value_block) in zip(title_matches, value_matches):
+        title = _clean_text(raw_title)
+        match = re.match(r"^Voie\s+(\d+)\s*(.*)$", title, re.IGNORECASE)
+        if match is None:
+            continue
+
+        number = int(match.group(1))
+        name = match.group(2).strip() or f"Voie {number}"
+        raw_value = _empty_to_none(_clean_text(raw_value_block))
+        numeric_value, unit = _parse_measurement(raw_value)
+
+        readings[number] = VoieReading(
+            number=number,
+            name=name,
+            state=_measurement_state_from_class(value_class),
+            raw_value=raw_value,
+            numeric_value=numeric_value,
+            unit=unit,
+            cycle_in_progress=None,
+            duration=None,
+            product_name=None,
+        )
+
+    if not readings:
+        raise IminilideParseError("No valid voie measurements were parsed from HTML")
+
+    return readings
 
 
 def parse_refresh_payload(payload: str) -> dict[int, VoieReading]:
@@ -281,6 +326,17 @@ def _parse_measurement(raw_value: str | None) -> tuple[float | None, str | None]
         return None, None
 
     return numeric_value, _empty_to_none(match.group(2).strip())
+
+
+def _measurement_state_from_class(value_class: str) -> str:
+    normalized = value_class.lower()
+    if "valeur_voie_alarme" in normalized:
+        return "alarme"
+    if "valeur_voie_acquittee" in normalized:
+        return "acquittee"
+    if "valeur_voie_cycle" in normalized:
+        return "cycle"
+    return ""
 
 
 def _normalize_ascii(value: str) -> str:

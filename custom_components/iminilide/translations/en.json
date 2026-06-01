@@ -17,5 +17,16 @@
     "abort": {
       "already_configured": "This controller is already configured."
     }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Options",
+        "description": "Adjust the polling interval used to refresh values.",
+        "data": {
+          "scan_interval": "Polling interval (seconds)"
+        }
+      }
+    }
   }
 }

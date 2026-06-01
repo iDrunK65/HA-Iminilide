@@ -17,5 +17,16 @@
     "abort": {
       "already_configured": "Ce controleur est deja configure."
     }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Options",
+        "description": "Ajustez l'intervalle d'interrogation utilise pour rafraichir les valeurs.",
+        "data": {
+          "scan_interval": "Intervalle d'interrogation (secondes)"
+        }
+      }
+    }
   }
 }

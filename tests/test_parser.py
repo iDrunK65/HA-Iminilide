@@ -31,6 +31,7 @@ _load_module("custom_components.iminilide.exceptions", PACKAGE_ROOT / "exception
 parser = _load_module("custom_components.iminilide.parser", PACKAGE_ROOT / "parser.py")
 
 parse_general_configuration = parser.parse_general_configuration
+parse_measurements_html = parser.parse_measurements_html
 parse_network_configuration = parser.parse_network_configuration
 parse_refresh_payload = parser.parse_refresh_payload
 parse_voie_configuration = parser.parse_voie_configuration
@@ -115,6 +116,15 @@ REFRESH_PAYLOAD = """
 }
 """
 
+HTML_MEASUREMENTS_PAGE = """
+<h1>Temperatures</h1>
+<div class="titre_voie">Voie 1<br />CF POSITIVE<br />RESERVE 01</div>
+<div class="titre_voie">Voie 2<br />CF+ BOF<br />LEGUMES 03</div>
+<div class="clearer"> </div>
+<div class="valeur_voie"><div class="valeur_voie_ok">-55.0 &deg;C</div></div>
+<div class="valeur_voie"><div class="valeur_voie_alarme"> 2.7 &deg;C</div></div>
+"""
+
 
 class ParserTests(unittest.TestCase):
     def test_parse_general_configuration(self) -> None:
@@ -160,6 +170,15 @@ class ParserTests(unittest.TestCase):
         self.assertEqual(readings[2].state, "alarme_haute")
         self.assertEqual(readings[2].duration, "90 min")
         self.assertEqual(readings[2].cycle_in_progress, "Defrost")
+
+    def test_parse_measurements_html(self) -> None:
+        readings = parse_measurements_html(HTML_MEASUREMENTS_PAGE)
+
+        self.assertEqual(set(readings), {1, 2})
+        self.assertEqual(readings[1].name, "CF POSITIVE RESERVE 01")
+        self.assertAlmostEqual(readings[1].numeric_value, -55.0)
+        self.assertEqual(readings[2].state, "alarme")
+        self.assertAlmostEqual(readings[2].numeric_value, 2.7)
 
 
 if __name__ == "__main__":

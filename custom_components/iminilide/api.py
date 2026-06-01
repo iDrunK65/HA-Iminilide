@@ -10,6 +10,7 @@ from .exceptions import IminilideConnectionError
 from .parser import (
     ControllerDescription,
     parse_general_configuration,
+    parse_measurements_html,
     parse_network_configuration,
     parse_refresh_payload,
     parse_voie_configuration,
@@ -61,6 +62,9 @@ class IminilideApiClient:
 
     async def async_fetch_readings(self):
         payload = await self._async_post_text("/", {"action": "refresh"})
+        if _looks_like_html(payload):
+            return parse_measurements_html(payload)
+
         return parse_refresh_payload(payload)
 
     async def _async_get_text(self, path: str) -> str:
@@ -86,3 +90,8 @@ class IminilideApiClient:
             raise IminilideConnectionError(
                 f"Request to {url} failed: {exc}"
             ) from exc
+
+
+def _looks_like_html(payload: str) -> bool:
+    stripped = payload.lstrip().lower()
+    return stripped.startswith("<html") or stripped.startswith("<!doctype html")

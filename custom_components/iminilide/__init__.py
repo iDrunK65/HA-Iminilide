@@ -1,14 +1,16 @@
 from __future__ import annotations
 
+from datetime import timedelta
+
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import CONF_HOST
+from homeassistant.const import CONF_HOST, CONF_SCAN_INTERVAL
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryNotReady
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from .api import IminilideApiClient, normalize_host
-from .const import DOMAIN, MANUFACTURER, PLATFORMS
+from .const import DEFAULT_SCAN_INTERVAL_SECONDS, DOMAIN, MANUFACTURER, PLATFORMS
 from .exceptions import IminilideError
 from .models import IminilideRuntimeData
 from .parser import ControllerMetadata
@@ -32,7 +34,14 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     except IminilideError as exc:
         raise ConfigEntryNotReady(str(exc)) from exc
 
-    coordinator = IminilideDataUpdateCoordinator(hass, client)
+    scan_interval_seconds = entry.options.get(
+        CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL_SECONDS
+    )
+    coordinator = IminilideDataUpdateCoordinator(
+        hass,
+        client,
+        timedelta(seconds=scan_interval_seconds),
+    )
     await coordinator.async_config_entry_first_refresh()
 
     controller_identifier = description.metadata.serial_number or host

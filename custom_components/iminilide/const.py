@@ -1,11 +1,11 @@
 from __future__ import annotations
 
-from datetime import timedelta
-
 from homeassistant.const import Platform
 
 DOMAIN = "iminilide"
 MANUFACTURER = "Microlide"
 DEFAULT_TIMEOUT = 10
-SCAN_INTERVAL = timedelta(seconds=30)
+DEFAULT_SCAN_INTERVAL_SECONDS = 30
+MIN_SCAN_INTERVAL_SECONDS = 5
+MAX_SCAN_INTERVAL_SECONDS = 3600
 PLATFORMS: list[Platform] = [Platform.SENSOR, Platform.BINARY_SENSOR]
