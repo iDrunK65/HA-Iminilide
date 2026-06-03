@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import timedelta
+import logging
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_HOST, CONF_SCAN_INTERVAL
@@ -16,6 +17,8 @@ from .models import IminilideRuntimeData
 from .parser import ControllerMetadata
 from .coordinator import IminilideDataUpdateCoordinator
 
+_LOGGER = logging.getLogger(__name__)
+
 
 async def async_setup(hass: HomeAssistant, config: dict) -> bool:
     """Set up the integration from YAML, which is not used."""
@@ -27,25 +30,60 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up i-MINILide from a config entry."""
 
     host = normalize_host(entry.data[CONF_HOST])
+    _LOGGER.debug(
+        "Starting i-MINILide setup: entry_id=%s host=%s options=%s",
+        entry.entry_id,
+        host,
+        dict(entry.options),
+    )
     client = IminilideApiClient(async_get_clientsession(hass), host)
 
     try:
         description = await client.async_fetch_controller_description()
     except IminilideError as exc:
+        _LOGGER.debug(
+            "Failed to fetch controller description during setup for host %s",
+            host,
+            exc_info=True,
+        )
         raise ConfigEntryNotReady(str(exc)) from exc
+
+    _LOGGER.debug(
+        "Controller description fetched during setup for %s: name=%s serial=%s voies=%d",
+        host,
+        description.metadata.name or host,
+        description.metadata.serial_number,
+        len(description.voies),
+    )
 
     scan_interval_seconds = entry.options.get(
         CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL_SECONDS
+    )
+    _LOGGER.debug(
+        "Creating coordinator for host %s with scan_interval=%ss",
+        host,
+        scan_interval_seconds,
     )
     coordinator = IminilideDataUpdateCoordinator(
         hass,
         client,
         timedelta(seconds=scan_interval_seconds),
     )
+    _LOGGER.debug("Running first refresh for host %s", host)
     await coordinator.async_config_entry_first_refresh()
+    _LOGGER.debug(
+        "First refresh completed for host %s with %d readings",
+        host,
+        len(coordinator.data),
+    )
 
     controller_identifier = description.metadata.serial_number or host
     controller_device_identifier = f"controller_{controller_identifier}"
+    _LOGGER.debug(
+        "Registering controller device for host %s with identifier=%s",
+        host,
+        controller_device_identifier,
+    )
     _async_register_controller_device(
         hass,
         entry,
@@ -63,7 +101,13 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     )
     entry.async_on_unload(entry.add_update_listener(_async_reload_entry))
 
+    _LOGGER.debug(
+        "Forwarding config entry %s to platforms %s",
+        entry.entry_id,
+        PLATFORMS,
+    )
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
+    _LOGGER.debug("Finished i-MINILide setup for entry %s on host %s", entry.entry_id, host)
     return True
 
 
@@ -88,6 +132,15 @@ def _async_register_controller_device(
     metadata: ControllerMetadata,
 ) -> None:
     device_registry = dr.async_get(hass)
+    _LOGGER.debug(
+        "Creating/updating controller device: host=%s identifier=%s name=%s serial=%s mac_present=%s sw_version=%s",
+        host,
+        controller_device_identifier,
+        metadata.name or host,
+        metadata.serial_number,
+        bool(metadata.mac_address),
+        _build_sw_version(metadata),
+    )
     device_registry.async_get_or_create(
         config_entry_id=entry.entry_id,
         identifiers={(DOMAIN, controller_device_identifier)},

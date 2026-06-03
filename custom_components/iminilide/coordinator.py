@@ -33,6 +33,18 @@ class IminilideDataUpdateCoordinator(DataUpdateCoordinator[dict[int, VoieReading
 
     async def _async_update_data(self) -> dict[int, VoieReading]:
         try:
-            return await self.client.async_fetch_readings()
+            _LOGGER.debug("Coordinator refresh started for host %s", self.client.host)
+            data = await self.client.async_fetch_readings()
+            _LOGGER.debug(
+                "Coordinator refresh finished for host %s with %d readings",
+                self.client.host,
+                len(data),
+            )
+            return data
         except IminilideError as exc:
+            _LOGGER.debug(
+                "Coordinator refresh failed for host %s",
+                self.client.host,
+                exc_info=True,
+            )
             raise UpdateFailed(str(exc)) from exc

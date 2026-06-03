@@ -16,8 +16,9 @@ Ce depot contient une `custom integration`, pas un add-on Supervisor.
 - creation des entites suivantes par voie:
   - `Mesure`
   - `Surveillance`
-  - `Alarme haute` si la surveillance est active
-  - `Alarme basse` si la surveillance est active
+  - `Alarme` si la surveillance est active et qu'au moins un seuil est configure
+  - `Seuil alarme haut` en diagnostic si configure
+  - `Seuil alarme bas` en diagnostic si configure
 
 ## Compatibilite
 
@@ -72,12 +73,13 @@ L'integration cree:
 Pour chaque voie, l'integration expose au minimum:
 
 - un capteur `Mesure`
-- un binaire `Surveillance`
+- un binaire `Surveillance` en diagnostic
 
 Selon la configuration de la voie, elle expose aussi:
 
-- `Alarme haute`
-- `Alarme basse`
+- un binaire `Alarme`
+- un capteur diagnostic `Seuil alarme haut`
+- un capteur diagnostic `Seuil alarme bas`
 
 ## Sources utilisees
 

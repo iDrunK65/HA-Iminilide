@@ -25,9 +25,22 @@ async def _async_validate_input(
     hass: HomeAssistant,
     user_input: dict[str, str],
 ) -> dict[str, str]:
-    host = normalize_host(user_input[CONF_HOST])
+    raw_host = user_input[CONF_HOST]
+    host = normalize_host(raw_host)
+    _LOGGER.debug(
+        "Validating i-MINILide config input: raw_host=%s normalized_host=%s",
+        raw_host,
+        host,
+    )
     client = IminilideApiClient(async_get_clientsession(hass), host)
     description = await client.async_fetch_controller_description()
+    _LOGGER.debug(
+        "Validation succeeded for host %s: title=%s unique_id=%s voies=%d",
+        host,
+        description.metadata.name or host,
+        description.metadata.serial_number or host,
+        len(description.voies),
+    )
     return {
         "host": host,
         "title": description.metadata.name or host,
@@ -52,13 +65,29 @@ class IminilideConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             try:
                 info = await _async_validate_input(self.hass, user_input)
             except IminilideConnectionError:
+                _LOGGER.debug(
+                    "Cannot connect to i-MINILide during config flow for host input %s",
+                    user_input.get(CONF_HOST),
+                    exc_info=True,
+                )
                 errors["base"] = "cannot_connect"
             except IminilideParseError:
+                _LOGGER.debug(
+                    "Invalid i-MINILide response during config flow for host input %s",
+                    user_input.get(CONF_HOST),
+                    exc_info=True,
+                )
                 errors["base"] = "invalid_response"
             except Exception:  # pragma: no cover - defensive guard for Home Assistant
                 _LOGGER.exception("Unexpected error while validating i-MINILide config")
                 errors["base"] = "unknown"
             else:
+                _LOGGER.debug(
+                    "Creating config entry for host %s with title=%s unique_id=%s",
+                    info["host"],
+                    info["title"],
+                    info["unique_id"],
+                )
                 await self.async_set_unique_id(info["unique_id"])
                 self._abort_if_unique_id_configured(updates={CONF_HOST: info["host"]})
                 return self.async_create_entry(

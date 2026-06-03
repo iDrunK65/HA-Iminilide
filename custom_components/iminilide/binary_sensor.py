@@ -1,12 +1,17 @@
 from __future__ import annotations
 
+import logging
+
 from homeassistant.components.binary_sensor import BinarySensorEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity import EntityCategory
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
+from .alarm import is_alarm_triggered
 from .entity import IminilideVoieEntity
+
+_LOGGER = logging.getLogger(__name__)
 
 
 async def async_setup_entry(
@@ -18,6 +23,7 @@ async def async_setup_entry(
 
     runtime_data = entry.runtime_data
     entities: list[BinarySensorEntity] = []
+    alarm_entities = 0
 
     for voie in sorted(runtime_data.description.voies.values(), key=lambda voie: voie.number):
         entities.append(IminilideSurveillanceBinarySensor(runtime_data, voie))
@@ -25,7 +31,15 @@ async def async_setup_entry(
             voie.alarm_low_threshold is not None or voie.alarm_high_threshold is not None
         ):
             entities.append(IminilideAlarmBinarySensor(runtime_data, voie))
+            alarm_entities += 1
 
+    _LOGGER.debug(
+        "Adding %d binary sensor entities for host %s across %d voies (%d alarm entities)",
+        len(entities),
+        runtime_data.host,
+        len(runtime_data.description.voies),
+        alarm_entities,
+    )
     async_add_entities(entities)
 
 
@@ -68,17 +82,11 @@ class IminilideAlarmBinarySensor(IminilideVoieEntity, BinarySensorEntity):
         if self.reading is None or self.reading.numeric_value is None:
             return False
 
-        value = self.reading.numeric_value
-        lower = self.voie.alarm_low_threshold
-        upper = self.voie.alarm_high_threshold
-
-        if lower is not None and upper is not None:
-            return lower <= value <= upper
-        if lower is not None:
-            return value < lower
-        if upper is not None:
-            return value > upper
-        return False
+        return is_alarm_triggered(
+            self.reading.numeric_value,
+            self.voie.alarm_low_threshold,
+            self.voie.alarm_high_threshold,
+        )
 
     @property
     def extra_state_attributes(self) -> dict[str, str | float] | None:
