@@ -6,7 +6,7 @@ from urllib.parse import urlparse
 
 from aiohttp import ClientError, ClientSession
 
-from .const import DEFAULT_TIMEOUT
+from .const import DEFAULT_TIMEOUT, MAX_CONCURRENT_VOIE_REQUESTS
 from .exceptions import IminilideConnectionError
 from .parser import (
     ControllerDescription,
@@ -58,8 +58,20 @@ class IminilideApiClient:
             metadata.serial_number,
             len(voie_summaries),
         )
+        semaphore = asyncio.Semaphore(MAX_CONCURRENT_VOIE_REQUESTS)
+
+        async def _async_fetch_limited(voie_number: int):
+            async with semaphore:
+                return await self.async_fetch_voie_configuration(voie_number)
+
+        _LOGGER.debug(
+            "Fetching %d voie configurations from %s with concurrency limit %d",
+            len(voie_summaries),
+            self.host,
+            MAX_CONCURRENT_VOIE_REQUESTS,
+        )
         voie_details = await asyncio.gather(
-            *(self.async_fetch_voie_configuration(voie.number) for voie in voie_summaries)
+            *(_async_fetch_limited(voie.number) for voie in voie_summaries)
         )
 
         description = ControllerDescription(
